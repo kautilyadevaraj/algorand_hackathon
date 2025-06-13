@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.vscode/**'
+      - '.idea/**'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  uwu-contracts-validate:
+    name: Run uwu-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/uwu-contracts-ci.yaml
+
+  uwu-contracts-release:
+    name: Run uwu-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/uwu-contracts-cd.yaml
+    needs: uwu-contracts-validate
+
+  uwu-frontend-validate:
+    name: Run uwu-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/uwu-frontend-ci.yaml
+
+  uwu-frontend-release:
+    name: Run uwu-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/uwu-frontend-cd.yaml
+    needs: uwu-frontend-validate

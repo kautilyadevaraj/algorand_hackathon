@@ -1,0 +1,14 @@
+name: Pull Request validation
+
+on: [pull_request]
+
+
+jobs:
+  uwu-contracts-ci:
+    name: Run uwu-contracts validation
+    uses: ./.github/workflows/uwu-contracts-ci.yaml
+
+  uwu-frontend-ci:
+    name: Run uwu-frontend validation
+    uses: ./.github/workflows/uwu-frontend-ci.yaml
+
