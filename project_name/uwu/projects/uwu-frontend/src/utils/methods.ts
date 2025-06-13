@@ -1,8 +1,7 @@
-import { AlgorandClient, Config, algo } from '@algorandfoundation/algokit-utils'
-import { secretKeyToMnemonic, Account } from 'algosdk';
-
+/* eslint-disable no-console */
+import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
+import { secretKeyToMnemonic } from 'algosdk'
 const algorand = AlgorandClient.defaultLocalNet()
-
 
 /**
  * Creates a new random Algorand account.
@@ -12,12 +11,12 @@ const algorand = AlgorandClient.defaultLocalNet()
  * before it can participate in transactions.
  */
 export const createRandomAccount = () => {
-  const randomAccount = algorand.account.random();
-  const mnemonic = secretKeyToMnemonic(randomAccount.account.sk);
-  console.log('Random Account Address:', randomAccount.addr);
-  console.log('Random Account Mnemonic (KEEP THIS SAFE!):', mnemonic);
-  return randomAccount;
-};
+  const randomAccount = algorand.account.random()
+  const mnemonic = secretKeyToMnemonic(randomAccount.account.sk)
+  console.log('Random Account Address:', randomAccount.addr)
+  console.log('Random Account Mnemonic (KEEP THIS SAFE!):', mnemonic)
+  return randomAccount
+}
 
 export const createAsset = async () => {
   const localNetDispenser = await algorand.account.localNetDispenser()
@@ -27,6 +26,7 @@ export const createAsset = async () => {
   const result = await algorand.send.assetCreate({ sender: randomAccount.addr, total: 100n })
 
   console.log(result)
+  console.log('Asset ID:', result.assetId)
 
   // // Advanced example
   // const result2 = await algorand.send.assetCreate({
@@ -66,13 +66,30 @@ export const createAsset = async () => {
  * Recovers an Algorand account from a 25-word mnemonic phrase.
  * This is useful for restoring access to an existing account.
  */
+
 export const recoverAccountFromMnemonic = (mnemonic: string) => {
   try {
-    const account = algorand.account.fromMnemonic(mnemonic);
-    console.log('Recovered Account Address:', account.addr);
-    return account;
+    const account = algorand.account.fromMnemonic(mnemonic)
+    console.log('Recovered Account Address:', account.addr)
+    return account
   } catch (error) {
-    console.error('Error recovering account from mnemonic:', error);
-    throw error;
+    console.error('Error recovering account from mnemonic:', error)
+    throw error
   }
-};
+}
+
+export function userOptIn(
+  sender: string, // this
+  assetID: bigint, //this
+) {
+  return async () => {
+    // Add a valid condition or remove the if statement if not needed
+    try {
+      await algorand.asset.getAccountInformation(sender, assetID)
+      await algorand.send.assetOptIn({ sender: sender, assetId: assetID })
+      console.log(`Successfully opted in to asset ${assetID} for account ${sender}`)
+    } catch (error) {
+      console.error('Error fetching account information or opting in:', error)
+    }
+  }
+}

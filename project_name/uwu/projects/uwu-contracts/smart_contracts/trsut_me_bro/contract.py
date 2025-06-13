@@ -11,6 +11,7 @@ class TrustMeBro(ARC4Contract):
     def create_application(self, asset_id: Asset, unitary_price: UInt64) -> None:
         self.assetid = asset_id.id
         self.unitaryprice = unitary_price
+        return asset_id
 
     #update the listing price
     @abimethod()
@@ -18,7 +19,7 @@ class TrustMeBro(ARC4Contract):
         assert Txn.sender == Global.creator_address
         self.unitaryprice = unitary_price
 
-    # opt in to the asset that will be sold
+    # opt in to the asset that will be sold. this is for the contract to opt in to asset
     @abimethod()
     def opt_in_to_asset(self, mbrpay: gtxn.PaymentTransaction) -> None:
         assert Txn.sender == Global.creator_address
@@ -32,4 +33,13 @@ class TrustMeBro(ARC4Contract):
             xfer_asset= self.assetid,
             asset_receiver= Global.current_application_address,
             asset_amount= 0,
+        ).submit()
+        
+    # for the user to opt in to the asset
+    @abimethod()
+    def user_opt_in(self) -> None:
+        itxn.AssetTransfer(
+            xfer_asset=self.assetid,
+            asset_receiver=Txn.sender,
+            asset_amount=0
         ).submit()
