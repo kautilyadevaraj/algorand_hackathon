@@ -1,7 +1,8 @@
-import { AlgorandClient, Config } from '@algorandfoundation/algokit-utils'
+import { AlgorandClient, Config, algo } from '@algorandfoundation/algokit-utils'
 import { secretKeyToMnemonic, Account } from 'algosdk';
 
 const algorand = AlgorandClient.defaultLocalNet()
+const localNetDispenser = await algorand.account.localNetDispenser()
 
 /**
  * Creates a new random Algorand account.
@@ -17,6 +18,48 @@ export const createRandomAccount = () => {
   console.log('Random Account Mnemonic (KEEP THIS SAFE!):', mnemonic);
   return randomAccount;
 };
+
+export const createAsset = async () => {
+  const randomAccount = algorand.account.random()
+  await algorand.account.ensureFunded(randomAccount.addr, localNetDispenser, algo(1))
+  // Basic example
+  const result = await algorand.send.assetCreate({ sender: randomAccount.addr, total: 100n })
+
+  console.log(result)
+
+  // // Advanced example
+  // const result2 = await algorand.send.assetCreate({
+  //   sender: randomAccount.addr,
+  //   total: 100n,
+  //   decimals: 2,
+  //   assetName: 'asset',
+  //   unitName: 'unit',
+  //   url: 'url',
+  //   metadataHash: 'metadataHash',
+  //   defaultFrozen: false,
+  //   manager: 'MANAGERADDRESS',
+  //   reserve: 'RESERVEADDRESS',
+  //   freeze: 'FREEZEADDRESS',
+  //   clawback: 'CLAWBACKADDRESS',
+  //   lease: 'lease',
+  //   note: 'note',
+  //   // You wouldn't normally set this field
+  //   firstValidRound: 1000n,
+  //   validityWindow: 10,
+  //   extraFee: (1000).microAlgo(),
+  //   staticFee: (1000).microAlgo(),
+  //   // Max fee doesn't make sense with extraFee AND staticFee
+  //   //  already specified, but here for completeness
+  //   maxFee: (3000).microAlgo(),
+  //   // Signer only needed if you want to provide one,
+  //   //  generally you'd register it with AlgorandClient
+  //   //  against the sender and not need to pass it in
+  //   maxRoundsToWaitForConfirmation: 5,
+  //   suppressLog: true,
+  // })
+
+  // console.log(result2)
+}
 
 /**
  * Recovers an Algorand account from a 25-word mnemonic phrase.
