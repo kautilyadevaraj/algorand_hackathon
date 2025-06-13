@@ -1,16 +1,15 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import TrustMeApp from './components/TrustMeApp'
 import './styles/main.css'
 import ErrorBoundary from './components/ErrorBoundary'
-import { BrowserRouter } from 'react-router-dom'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <div className="dark">
       <ErrorBoundary>
-        <App />
+        <TrustMeApp />
       </ErrorBoundary>
-    </BrowserRouter>
+    </div>
   </React.StrictMode>,
 )
