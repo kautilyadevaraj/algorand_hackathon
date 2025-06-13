@@ -2,7 +2,7 @@ import { AlgorandClient, Config, algo } from '@algorandfoundation/algokit-utils'
 import { secretKeyToMnemonic, Account } from 'algosdk';
 
 const algorand = AlgorandClient.defaultLocalNet()
-const localNetDispenser = await algorand.account.localNetDispenser()
+
 
 /**
  * Creates a new random Algorand account.
@@ -20,6 +20,7 @@ export const createRandomAccount = () => {
 };
 
 export const createAsset = async () => {
+  const localNetDispenser = await algorand.account.localNetDispenser()
   const randomAccount = algorand.account.random()
   await algorand.account.ensureFunded(randomAccount.addr, localNetDispenser, algo(1))
   // Basic example
