@@ -33,3 +33,16 @@ class TrustMeBro(ARC4Contract):
             asset_receiver= Global.current_application_address,
             asset_amount= 0,
         ).submit()
+        
+    @abimethod()
+    def user_opt_in(self, mbrpay: gtxn.PaymentTransaction) -> None:
+        
+        assert mbrpay.receiver == Global.current_application_address
+
+        assert mbrpay.amount == Global.min_balance + Global.asset_opt_in_min_balance
+        
+        itxn.AssetTransfer(
+            xfer_asset=self.assetid,
+            asset_receiver=Txn.sender,
+            asset_amount=0
+        ).submit()

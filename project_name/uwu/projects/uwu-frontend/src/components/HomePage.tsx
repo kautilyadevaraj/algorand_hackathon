@@ -1,60 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+'use client'
+
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { ArrowRight } from 'lucide-react'
+import { useWallet } from '@txnlab/use-wallet-react'
+import WalletDisplay from './WalletDisplay'
 
 interface HomePageProps {
-  onSearch: (query: string) => void;
-  onDeveloperClick: () => void;
+  onSearch: (query: string) => void
+  onDeveloperClick: () => void
+  onConnectWallet: () => void
 }
 
-const randomNames = [
-  'taufeeq.algo',
-  'kautilya.algo',
-  'anirudh.algo',
-  'sagar.algo',
-  '______',
-];
+const randomNames = ['taufeeq.algo', 'kautilya.algo', 'anirudh.algo', 'sagar.algo', '______']
 
-const HomePage: React.FC<HomePageProps> = ({ onSearch, onDeveloperClick }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [placeholder, setPlaceholder] = useState('______');
-  const [nameIndex, setNameIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
+const HomePage: React.FC<HomePageProps> = ({ onSearch, onDeveloperClick, onConnectWallet }) => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [placeholder, setPlaceholder] = useState('______')
+  const [nameIndex, setNameIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const { activeAddress, wallets } = useWallet()
 
   useEffect(() => {
-    if (searchQuery) return;
+    if (searchQuery) return
 
     const type = () => {
-      const currentName = randomNames[nameIndex];
-      const currentLength = placeholder.length;
+      const currentName = randomNames[nameIndex]
+      const currentLength = placeholder.length
 
       if (isDeleting) {
         if (currentLength > 0) {
-          setPlaceholder(currentName.slice(0, currentLength - 1));
+          setPlaceholder(currentName.slice(0, currentLength - 1))
         } else {
-          setIsDeleting(false);
-          setNameIndex((prev) => (prev + 1) % randomNames.length);
+          setIsDeleting(false)
+          setNameIndex((prev) => (prev + 1) % randomNames.length)
         }
       } else {
         if (currentLength < currentName.length) {
-          setPlaceholder(currentName.slice(0, currentLength + 1));
+          setPlaceholder(currentName.slice(0, currentLength + 1))
         } else {
-          setTimeout(() => setIsDeleting(true), 2000);
+          setTimeout(() => setIsDeleting(true), 2000)
         }
       }
-    };
+    }
 
-    const timeoutId = setTimeout(type, isDeleting ? 60 : 120);
-    return () => clearTimeout(timeoutId);
-  }, [placeholder, isDeleting, nameIndex, searchQuery, randomNames]);
+    const timeoutId = setTimeout(type, isDeleting ? 60 : 120)
+    return () => clearTimeout(timeoutId)
+  }, [placeholder, isDeleting, nameIndex, searchQuery, randomNames])
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (searchQuery.trim()) {
-      onSearch(searchQuery.trim());
+      onSearch(searchQuery.trim())
     }
-  };
+  }
+
+  const handleDeveloperClick = () => {
+    if (!activeAddress) {
+      // Show wallet connection modal if not connected
+      onConnectWallet()
+    } else {
+      // Proceed to dashboard if wallet is connected
+      onDeveloperClick()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black text-white relative">
@@ -63,16 +75,19 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onDeveloperClick }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="absolute top-0 right-0 p-4 sm:p-6"
+        className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 sm:p-6"
       >
         <Button
-          onClick={onDeveloperClick}
+          onClick={handleDeveloperClick}
           variant="ghost"
           className="text-muted-foreground hover:text-white transition-colors duration-200"
         >
-          Are you a developer?
-          <ArrowRight className="w-4 h-4 ml-2" />
+          Are you a developer ?
+          <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
+
+        {/* Connect Wallet Button */}
+        <WalletDisplay onConnectWallet={onConnectWallet} />
       </motion.header>
 
       {/* Main Content */}
@@ -102,7 +117,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onDeveloperClick }) => {
                   }}
                   autoFocus
                 />
-                <span 
+                <span
                   className="invisible whitespace-pre"
                   style={{
                     fontSize: 'inherit',
@@ -121,7 +136,7 @@ const HomePage: React.FC<HomePageProps> = ({ onSearch, onDeveloperClick }) => {
         </motion.div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default HomePage; 
+export default HomePage

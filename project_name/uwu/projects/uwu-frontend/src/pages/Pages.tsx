@@ -1,10 +1,9 @@
 import { Routes, Route } from 'react-router'
-import { HomePage } from './HomePage'
-
+import HomePage from '@/components/HomePage'
 const Pages = () => {
   return (
     <Routes>
-      <Route path="/" element={<HomePage/>}/>
+      {/* <Route path="/" element={<HomePage/>}/> */}
     </Routes>
   )
 }

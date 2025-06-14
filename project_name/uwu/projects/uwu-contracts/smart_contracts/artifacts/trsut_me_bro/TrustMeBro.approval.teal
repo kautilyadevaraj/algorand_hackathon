@@ -3,20 +3,44 @@
 
 // algopy.arc4.ARC4Contract.approval_program() -> uint64:
 main:
-    intcblock 1 0
+    intcblock 1 0 4
     bytecblock "assetid" "unitaryprice"
     // smart_contracts/trsut_me_bro/contract.py:5
     // class TrustMeBro(ARC4Contract):
     txn NumAppArgs
-    bz main_after_if_else@9
-    pushbytess 0x878cbb3d 0xcc760037 0x1574535a // method "create_application(asset,uint64)void", method "set_price(uint64)void", method "opt_in_to_asset(pay)void"
+    bz main_after_if_else@10
+    pushbytess 0x878cbb3d 0xcc760037 0x1574535a 0x37b9e7b4 // method "create_application(asset,uint64)void", method "set_price(uint64)void", method "opt_in_to_asset(pay)void", method "user_opt_in(pay)void"
     txna ApplicationArgs 0
-    match main_create_application_route@3 main_set_price_route@4 main_opt_in_to_asset_route@5
+    match main_create_application_route@3 main_set_price_route@4 main_opt_in_to_asset_route@5 main_user_opt_in_route@6
 
-main_after_if_else@9:
+main_after_if_else@10:
     // smart_contracts/trsut_me_bro/contract.py:5
     // class TrustMeBro(ARC4Contract):
     intc_1 // 0
+    return
+
+main_user_opt_in_route@6:
+    // smart_contracts/trsut_me_bro/contract.py:37
+    // @abimethod()
+    txn OnCompletion
+    !
+    assert // OnCompletion is not NoOp
+    txn ApplicationID
+    assert // can only call when not creating
+    // smart_contracts/trsut_me_bro/contract.py:5
+    // class TrustMeBro(ARC4Contract):
+    txn GroupIndex
+    intc_0 // 1
+    -
+    dup
+    gtxns TypeEnum
+    intc_0 // pay
+    ==
+    assert // transaction type is pay
+    // smart_contracts/trsut_me_bro/contract.py:37
+    // @abimethod()
+    callsub user_opt_in
+    intc_0 // 1
     return
 
 main_opt_in_to_asset_route@5:
@@ -191,7 +215,7 @@ opt_in_to_asset:
     itxn_field XferAsset
     // smart_contracts/trsut_me_bro/contract.py:31
     // itxn.AssetTransfer(
-    pushint 4 // axfer
+    intc_2 // axfer
     itxn_field TypeEnum
     intc_1 // 0
     itxn_field Fee
@@ -200,6 +224,66 @@ opt_in_to_asset:
     //     xfer_asset= self.assetid,
     //     asset_receiver= Global.current_application_address,
     //     asset_amount= 0,
+    // ).submit()
+    itxn_submit
+    retsub
+
+
+// smart_contracts.trsut_me_bro.contract.TrustMeBro.user_opt_in(mbrpay: uint64) -> void:
+user_opt_in:
+    // smart_contracts/trsut_me_bro/contract.py:37-38
+    // @abimethod()
+    // def user_opt_in(self, mbrpay: gtxn.PaymentTransaction) -> None:
+    proto 1 0
+    // smart_contracts/trsut_me_bro/contract.py:40
+    // assert mbrpay.receiver == Global.current_application_address
+    frame_dig -1
+    gtxns Receiver
+    global CurrentApplicationAddress
+    ==
+    assert
+    // smart_contracts/trsut_me_bro/contract.py:42
+    // assert mbrpay.amount == Global.min_balance + Global.asset_opt_in_min_balance
+    frame_dig -1
+    gtxns Amount
+    global MinBalance
+    global AssetOptInMinBalance
+    +
+    ==
+    assert
+    // smart_contracts/trsut_me_bro/contract.py:44-48
+    // itxn.AssetTransfer(
+    //     xfer_asset=self.assetid,
+    //     asset_receiver=Txn.sender,
+    //     asset_amount=0
+    // ).submit()
+    itxn_begin
+    // smart_contracts/trsut_me_bro/contract.py:45
+    // xfer_asset=self.assetid,
+    intc_1 // 0
+    bytec_0 // "assetid"
+    app_global_get_ex
+    assert // check self.assetid exists
+    // smart_contracts/trsut_me_bro/contract.py:46
+    // asset_receiver=Txn.sender,
+    txn Sender
+    // smart_contracts/trsut_me_bro/contract.py:47
+    // asset_amount=0
+    intc_1 // 0
+    itxn_field AssetAmount
+    itxn_field AssetReceiver
+    itxn_field XferAsset
+    // smart_contracts/trsut_me_bro/contract.py:44
+    // itxn.AssetTransfer(
+    intc_2 // axfer
+    itxn_field TypeEnum
+    intc_1 // 0
+    itxn_field Fee
+    // smart_contracts/trsut_me_bro/contract.py:44-48
+    // itxn.AssetTransfer(
+    //     xfer_asset=self.assetid,
+    //     asset_receiver=Txn.sender,
+    //     asset_amount=0
     // ).submit()
     itxn_submit
     retsub
