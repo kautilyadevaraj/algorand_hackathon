@@ -1,23 +1,42 @@
 'use client'
 
 import type React from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle, Shield, Users, TrendingUp, Wallet } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, CheckCircle, Shield, Users, TrendingUp, Wallet, User } from 'lucide-react'
 
 interface DeveloperOnboardingProps {
   walletAddress: string
   isOptedIn: boolean
-  onOptIn: () => void
+  onOptIn: (username: string) => void
   onGoToDashboard: () => void
   onBack: () => void
 }
 
 const DeveloperOnboarding: React.FC<DeveloperOnboardingProps> = ({ walletAddress, isOptedIn, onOptIn, onGoToDashboard, onBack }) => {
+  const [username, setUsername] = useState('')
+  const [isValidUsername, setIsValidUsername] = useState(false)
+
   const formatAddress = (address: string) => {
     return `${address.slice(0, 8)}...${address.slice(-6)}`
+  }
+
+  const handleUsernameChange = (value: string) => {
+    setUsername(value)
+    // Simple validation: must end with .algo and be at least 5 characters
+    const isValid = value.endsWith('.algo') && value.length >= 5 && value.length <= 20
+    setIsValidUsername(isValid)
+  }
+
+  const handleOptIn = () => {
+    if (isValidUsername) {
+      onOptIn(username)
+    }
   }
 
   return (
@@ -97,18 +116,40 @@ const DeveloperOnboarding: React.FC<DeveloperOnboardingProps> = ({ walletAddress
                 </div>
               ) : (
                 <div className="text-center space-y-4">
-                  <h3 className="text-lg font-medium text-foreground">Ready to join?</h3>
+                  <h3 className="text-lg font-medium text-foreground">Choose Your Username</h3>
                   <p className="text-muted-foreground">
-                    To participate in the TrustMeBro network, you need to opt-in with your connected wallet. This will allow you to receive
-                    review tokens and build your reputation.
+                    Choose a unique username that others will use to find and review your work on the platform.
                   </p>
+
+                  <div className="space-y-2 text-left max-w-md mx-auto">
+                    <Label htmlFor="username" className="text-sm font-medium">
+                      Username
+                    </Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="yourname.algo"
+                        value={username}
+                        onChange={(e) => handleUsernameChange(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    {username && !isValidUsername && (
+                      <p className="text-sm text-red-400">Username must end with .algo and be 5-20 characters long</p>
+                    )}
+                    {isValidUsername && <p className="text-sm text-green-400">Great! This username looks good</p>}
+                  </div>
+
                   <div className="bg-secondary/20 border border-border/30 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground">
                       <strong>Note:</strong> Opting in requires a small transaction fee and will create an asset opt-in transaction on the
                       Algorand blockchain.
                     </p>
                   </div>
-                  <Button onClick={onOptIn} className="w-full" size="lg">
+
+                  <Button onClick={handleOptIn} className="w-full" size="lg" disabled={!isValidUsername}>
                     Opt-In to TrustMeBro Network
                   </Button>
                 </div>

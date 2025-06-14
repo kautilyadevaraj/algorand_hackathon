@@ -1,137 +1,19 @@
-import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
-import { secretKeyToMnemonic } from 'algosdk'
 import { toast } from 'sonner'
-import { TrustMeBroClient } from '@/contracts/TrustMeBro'
-// // import { AlgodClient } from 'algosdk/dist/types/client/v2/algod/algod'
-// // import algosdk from 'algosdk'
-import { algos } from '@algorandfoundation/algokit-utils'
-const algorand = AlgorandClient.testNet()
-import { TransactionSigner } from 'algosdk'
+import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+import { getAlgodConfigFromViteEnvironment } from './network/getAlgoClientConfigs'
 
+const algodConfig = getAlgodConfigFromViteEnvironment()
+const algorand = AlgorandClient.fromConfig({ algodConfig })
 
-
-/**
- * Creates a new random Algorand account.
- * In a production environment, ensure the mnemonic is securely stored and managed,
- * as it provides full control over the account.
- * Also, remember to fund this account with at least 0.1 Algo (100,000 microAlgos)
- * before it can participate in transactions.
- */
-export const createRandomAccount = () => {
-  const randomAccount = algorand.account.random()
-  const mnemonic = secretKeyToMnemonic(randomAccount.account.sk)
-  console.log('Random Account Address:', randomAccount.addr)
-  console.log('Random Account Mnemonic (KEEP THIS SAFE!):', mnemonic)
-  return randomAccount
-}
-
-export const createAsset = async () => {
-  const localNetDispenser = await algorand.account.localNetDispenser()
-  const randomAccount = algorand.account.random()
-  await algorand.account.ensureFunded(randomAccount.addr, localNetDispenser, algo(1))
-  // Basic example
-  const result = await algorand.send.assetCreate({ sender: randomAccount.addr, total: 100n })
-
-  console.log(result)
-
-  // // Advanced example
-  // const result2 = await algorand.send.assetCreate({
-  //   sender: randomAccount.addr,
-  //   total: 100n,
-  //   decimals: 2,
-  //   assetName: 'asset',
-  //   unitName: 'unit',
-  //   url: 'url',
-  //   metadataHash: 'metadataHash',
-  //   defaultFrozen: false,
-  //   manager: 'MANAGERADDRESS',
-  //   reserve: 'RESERVEADDRESS',
-  //   freeze: 'FREEZEADDRESS',
-  //   clawback: 'CLAWBACKADDRESS',
-  //   lease: 'lease',
-  //   note: 'note',
-  //   // You wouldn't normally set this field
-  //   firstValidRound: 1000n,
-  //   validityWindow: 10,
-  //   extraFee: (1000).microAlgo(),
-  //   staticFee: (1000).microAlgo(),
-  //   // Max fee doesn't make sense with extraFee AND staticFee
-  //   //  already specified, but here for completeness
-  //   maxFee: (3000).microAlgo(),
-  //   // Signer only needed if you want to provide one,
-  //   //  generally you'd register it with AlgorandClient
-  //   //  against the sender and not need to pass it in
-  //   maxRoundsToWaitForConfirmation: 5,
-  //   suppressLog: true,
-  // })
-
-  // console.log(result2)
-}
-
-/**
- * Recovers an Algorand account from a 25-word mnemonic phrase.
- * This is useful for restoring access to an existing account.
- */
-export const recoverAccountFromMnemonic = (mnemonic: string) => {
-  try {
-    const account = algorand.account.fromMnemonic(mnemonic)
-    console.log('Recovered Account Address:', account.addr)
-    return account
-  } catch (error) {
-    console.error('Error recovering account from mnemonic:', error)
-    throw error
-  }
-}
-
-export function userOptIn(sender: string, transactionSigner: TransactionSigner) {
-  return async () => {
-    const assetId: bigint = 123n;
-    algorand.account.setSigner(sender, transactionSigner)
-
-    try {
-      toast.loading('Opting in to TrustMeBro network...', {
-        id: 'opt-in-loading',
-      })
-
-      const newClient = new TrustMeBroClient({ appId: 741161696n, algorand, defaultSigner: transactionSigner })
-
-      const mbrpay = await algorand.createTransaction.payment({
-        sender,
-        receiver: 'BMD6GKBZT5O3JAVRUO5M3R7XDDRIMI4U5J7OLBK47YQDFS2FFOKOTMPRUQ',
-        amount: algos(0.1 + 0.1),
-        extraFee: algos(0.001),
-      })
-
-      await newClient.send.userOptIn({ args: [mbrpay], sender: sender, assetReferences: [assetId] })
-
-
-      toast.success(`Successfully opted in to TrustMeBro network!`, {
-        id: 'opt-in-loading',
-        description: `Account ${sender.slice(0, 6)}...${sender.slice(-4)} is now part of the network`,
-      })
-
-      return true
-    } catch (error) {
-      console.error('Error opting in:', error)
-
-      toast.error('Failed to opt in to TrustMeBro network', {
-        id: 'opt-in-loading',
-        description: error instanceof Error ? error.message : 'Please try again',
-      })
-
-      return false
-    }
-  }
-}
+// Use the same asset ID constant as in useOptInAsset
+const ASSET_ID = 123n
 
 export async function checkUserOptInStatus(address: string): Promise<boolean> {
-  const assetId: bigint = 123n
-
   try {
     console.log(`Checking opt-in status for address: ${address}`)
-    console.log(`Asset ID: ${assetId}`)
+    console.log(`Asset ID: ${ASSET_ID}`)
 
-    const accountInfo = await algorand.asset.getAccountInformation(address, assetId)
+    const accountInfo = await algorand.asset.getAccountInformation(address, ASSET_ID)
 
     console.log('Account asset information:', accountInfo)
 
@@ -145,40 +27,103 @@ export async function checkUserOptInStatus(address: string): Promise<boolean> {
   } catch (error) {
     console.error('Error checking opt-in status:', error)
 
-    // Handle specific wallet errors
-    if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase()
+    // If there's an error (like asset not found for this account),
+    // we assume the user is not opted in
+    return false
+  }
+}
 
-      if (
-        errorMessage.includes('scheme does not have a registered handler') ||
-        errorMessage.includes('perawallet-wc') ||
-        errorMessage.includes('defly-wc')
-      ) {
-        toast.error('Wallet app not installed', {
-          id: 'opt-in-loading',
-          description: 'Please install the wallet app on your device or try a different wallet',
-        })
-      } else if (
-        errorMessage.includes('user rejected') ||
-        errorMessage.includes('user cancelled') ||
-        errorMessage.includes('cancelled by user')
-      ) {
-        toast.info('Transaction cancelled', {
-          id: 'opt-in-loading',
-          description: 'You cancelled the opt-in transaction',
-        })
-      } else {
-        toast.error('Failed to opt in to TrustMeBro network', {
-          id: 'opt-in-loading',
-          description: error.message || 'Please try again',
-        })
-      }
-    } else {
-      toast.error('Failed to opt in to TrustMeBro network', {
-        id: 'opt-in-loading',
-        description: 'An unexpected error occurred. Please try again',
-      })
+// Mock function to simulate developer registration
+export async function registerDeveloper(username: string, address: string): Promise<boolean> {
+  try {
+    console.log(`Registering developer: ${username} with address: ${address}`)
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    toast.success('Developer registered successfully!', {
+      description: `Welcome to TrustMeBro, ${username}!`,
+    })
+
+    return true
+  } catch (error) {
+    console.error('Error registering developer:', error)
+    toast.error('Registration failed', {
+      description: 'Please try again',
+    })
+    return false
+  }
+}
+
+// Mock function to simulate submitting a review
+export async function submitReview(
+  developerUsername: string,
+  reviewerAddress: string,
+  isPositive: boolean,
+  message: string,
+): Promise<boolean> {
+  try {
+    console.log(`Submitting ${isPositive ? 'positive' : 'negative'} review for ${developerUsername}`)
+    console.log(`Review: ${message}`)
+    console.log(`Reviewer: ${reviewerAddress}`)
+
+    // Simulate blockchain transaction delay
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    toast.success('Review submitted successfully!', {
+      description: `Your ${isPositive ? 'positive' : 'negative'} review has been recorded on the blockchain`,
+    })
+
+    return true
+  } catch (error) {
+    console.error('Error submitting review:', error)
+    toast.error('Review submission failed', {
+      description: 'Please try again',
+    })
+    return false
+  }
+}
+
+// Mock function to simulate fetching developer profile
+export async function fetchDeveloperProfile(username: string): Promise<any> {
+  try {
+    console.log(`Fetching profile for: ${username}`)
+
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    // This would normally fetch from blockchain/database
+    return {
+      found: true,
+      profile: {
+        username,
+        // ... other profile data would be fetched here
+      },
     }
+  } catch (error) {
+    console.error('Error fetching developer profile:', error)
+    return { found: false }
+  }
+}
+
+// Mock function to simulate opt-in process
+export async function performOptIn(address: string, username: string): Promise<boolean> {
+  try {
+    console.log(`Performing opt-in for ${username} (${address})`)
+
+    // Simulate blockchain transaction
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    toast.success('Opt-in successful!', {
+      description: `${username} is now part of the TrustMeBro network`,
+    })
+
+    return true
+  } catch (error) {
+    console.error('Opt-in failed:', error)
+    toast.error('Opt-in failed', {
+      description: 'Please try again',
+    })
     return false
   }
 }

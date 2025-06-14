@@ -24,18 +24,18 @@ export interface DeveloperProfile {
 }
 
 export const mockDeveloperProfiles: Record<string, DeveloperProfile> = {
-  'kautilya.algo': {
-    username: 'kautilya.algo',
-    address: 'KAUT7YLXM2NQJZK3VWXR8PLMN4QWERTYUIOP9ASDFGHJKLZXCVBNM',
+  'taufeeq.algo': {
+    username: 'taufeeq.algo',
+    address: 'TAUF7YLXM2NQJZK3VWXR8PLMN4QWERTYUIOP9ASDFGHJKLZXCVBNM',
     joinedDate: '2024-01-15',
     totalReviews: 47,
     positiveReviews: 42,
     negativeReviews: 5,
     trustScore: 89,
     isOptedIn: true,
-    bio: 'Full-stack developer specializing in Algorand dApps and smart contracts',
-    skills: ['Algorand', 'React', 'Python', 'Smart Contracts', 'DeFi'],
-    projects: ['AlgoSwap', 'TrustMeBro', 'AlgoNFT Marketplace'],
+    bio: 'Senior Full-stack developer specializing in Algorand dApps and smart contracts. Passionate about building decentralized solutions.',
+    skills: ['Algorand', 'React', 'Python', 'Smart Contracts', 'DeFi', 'TypeScript', 'Node.js'],
+    projects: ['AlgoSwap DEX', 'TrustMeBro Platform', 'AlgoNFT Marketplace', 'DeFi Lending Protocol'],
     recentReviews: [
       {
         id: '1',
@@ -63,6 +63,48 @@ export const mockDeveloperProfiles: Record<string, DeveloperProfile> = {
         message: 'Project was delayed and communication could have been better.',
         date: '2024-01-15',
         transactionId: 'TXN789GHI',
+      },
+      {
+        id: '4',
+        reviewer: 'diana.algo',
+        reviewerAddress: 'DIANA012...',
+        isPositive: true,
+        message: 'Outstanding developer! Built exactly what we needed with clean, efficient code.',
+        date: '2024-01-12',
+        transactionId: 'TXN012JKL',
+      },
+      {
+        id: '5',
+        reviewer: 'eve.algo',
+        reviewerAddress: 'EVE345...',
+        isPositive: true,
+        message: 'Very knowledgeable about Algorand ecosystem. Great problem solver.',
+        date: '2024-01-10',
+        transactionId: 'TXN345MNO',
+      },
+    ],
+  },
+  'kautilya.algo': {
+    username: 'kautilya.algo',
+    address: 'KAUT7YLXM2NQJZK3VWXR8PLMN4QWERTYUIOP9ASDFGHJKLZXCVBNM',
+    joinedDate: '2024-01-20',
+    totalReviews: 23,
+    positiveReviews: 20,
+    negativeReviews: 3,
+    trustScore: 87,
+    isOptedIn: true,
+    bio: 'Blockchain developer focused on DeFi and NFT solutions',
+    skills: ['Algorand', 'JavaScript', 'Python', 'Smart Contracts'],
+    projects: ['NFT Creator', 'Token Bridge'],
+    recentReviews: [
+      {
+        id: '1',
+        reviewer: 'frank.algo',
+        reviewerAddress: 'FRANK678...',
+        isPositive: true,
+        message: 'Solid work on the NFT marketplace. Good attention to detail.',
+        date: '2024-01-22',
+        transactionId: 'TXN678PQR',
       },
     ],
   },

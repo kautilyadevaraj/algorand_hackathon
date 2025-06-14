@@ -1,65 +1,66 @@
+'use client'
+
 import type React from 'react'
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useWallet } from '@txnlab/use-wallet-react'
 import HomePage from './HomePage'
-import ResultsDisplay from './ResultsDisplay'
+import DeveloperProfile from './DeveloperProfile'
 import Dashboard from './Dashboard'
 import DeveloperOnboarding from './DeveloperOnboarding'
 import WalletConnectModal from './WalletConnectModal'
-import OptInModal from './OptInModal'
-import { mockDeveloperData, type DeveloperData } from '@/data/mockData'
-import { checkUserOptInStatus } from '@/utils/methods'
+import { mockDeveloperProfiles, type DeveloperProfile as DeveloperProfileType } from '@/data/mockData'
+import { performOptIn, submitReview } from '@/utils/methods'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-type AppState = 'home' | 'results' | 'dashboard' | 'developer-onboarding'
+type AppState = 'home' | 'profile' | 'dashboard' | 'developer-onboarding'
 
 interface AppData {
   currentDeveloper?: string
-  developerData?: DeveloperData
+  developerProfile?: DeveloperProfileType
   connectedWallet?: string
   isOptedIn: boolean
+  userType?: 'developer' | 'user'
 }
 
 const TrustMeApp: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('home')
   const [appData, setAppData] = useState<AppData>({ isOptedIn: false })
   const [showWalletModal, setShowWalletModal] = useState(false)
-  const [showOptInModal, setShowOptInModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const { activeAddress } = useWallet()
 
-  // Search for a developer
+  // Search for a developer (user workflow)
   const handleSearch = async (query: string) => {
     setIsLoading(true)
 
     // Simulate API delay
     setTimeout(() => {
       const normalizedQuery = query.toLowerCase().trim()
-      const developerData = mockDeveloperData[normalizedQuery]
+      const developerProfile = mockDeveloperProfiles[normalizedQuery]
 
-      if (developerData) {
+      if (developerProfile) {
         setAppData((prev) => ({
           ...prev,
           currentDeveloper: normalizedQuery,
-          developerData,
+          developerProfile,
+          userType: 'user',
         }))
-        setAppState('results')
+        setAppState('profile')
       } else {
         toast.error('Developer not found', {
-          description: 'Try searching for: trusted_dev.algo, risky_dev.algo, new_dev.algo, or unregistered_dev.algo',
+          description: 'Try searching for: taufeeq.algo, kautilya.algo, trusted_dev.algo, or new_dev.algo',
         })
       }
       setIsLoading(false)
     }, 1000)
   }
 
-  // Handle developer button click (wallet connection flow)
+  // Handle developer button click (developer workflow)
   const handleDeveloperClick = () => {
     if (!activeAddress) {
-      // If wallet is not connected, show wallet modal
       toast.info('Please connect your wallet first', {
         description: 'You need to connect a wallet to access the developer dashboard',
       })
@@ -67,7 +68,6 @@ const TrustMeApp: React.FC = () => {
       return
     }
 
-    // If wallet is connected, go to developer onboarding
     proceedToDeveloperOnboarding()
   }
 
@@ -83,52 +83,23 @@ const TrustMeApp: React.FC = () => {
     setIsLoading(true)
 
     try {
-      console.log('Checking opt-in status for connected wallet...')
-
-      // Check if the user is actually opted in on the blockchain
-      const isOptedIn = await checkUserOptInStatus(activeAddress)
-
-      console.log(`Opt-in status result: ${isOptedIn}`)
-
-      // For demo purposes, we'll still use mock developer data for the dashboard
-      // In a real app, you'd fetch this data based on the wallet address
-      const connectedDeveloper = 'trusted_dev.algo' // This would be derived from activeAddress
-      const developerData = mockDeveloperData[connectedDeveloper]
-
+      // For demo purposes, assume user is not opted in initially
       setAppData((prev) => ({
         ...prev,
-        currentDeveloper: connectedDeveloper,
-        developerData,
-        isOptedIn: isOptedIn, // Use real blockchain data
-      }))
-
-      // Always show developer onboarding page first
-      // The onboarding page will handle showing the appropriate UI based on opt-in status
-      setAppState('developer-onboarding')
-
-      if (isOptedIn) {
-        toast.success('Wallet connected!', {
-          description: 'Your wallet is already opted in to the TrustMeBro network',
-        })
-      } else {
-        toast.info('Wallet connected!', {
-          description: 'You can now opt-in to the TrustMeBro network',
-        })
-      }
-    } catch (error) {
-      console.error('Error checking opt-in status:', error)
-      toast.error('Error checking wallet status', {
-        description: 'Please try again',
-      })
-
-      // On error, assume not opted in and show onboarding
-      setAppData((prev) => ({
-        ...prev,
-        currentDeveloper: 'unknown_dev.algo',
-        developerData: mockDeveloperData['new_dev.algo'], // Use new dev as fallback
+        userType: 'developer',
         isOptedIn: false,
       }))
+
       setAppState('developer-onboarding')
+
+      toast.info('Welcome to developer onboarding!', {
+        description: 'Choose your username to get started',
+      })
+    } catch (error) {
+      console.error('Error in developer onboarding:', error)
+      toast.error('Error accessing developer features', {
+        description: 'Please try again',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -143,25 +114,98 @@ const TrustMeApp: React.FC = () => {
     }))
 
     toast.success(`${walletType} connected successfully!`, {
-      description: 'Checking your opt-in status...',
+      description: 'You can now access developer features',
     })
 
-    // Proceed to developer onboarding after wallet connection
     proceedToDeveloperOnboarding()
   }
 
-  // Handle manual opt-in request from developer onboarding
-  const handleOptInRequest = () => {
-    setShowOptInModal(true)
+  // Handle developer opt-in with username
+  const handleDeveloperOptIn = async (username: string) => {
+    if (!activeAddress) return
+
+    setIsLoading(true)
+
+    try {
+      const success = await performOptIn(activeAddress, username)
+
+      if (success) {
+        // Check if this is taufeeq.algo and use existing profile data
+        let newProfile: DeveloperProfileType
+
+        if (username === 'taufeeq.algo' && mockDeveloperProfiles['taufeeq.algo']) {
+          // Use existing taufeeq.algo profile data
+          newProfile = {
+            ...mockDeveloperProfiles['taufeeq.algo'],
+            address: activeAddress, // Update with connected wallet address
+            isOptedIn: true,
+          }
+        } else {
+          // Create a new profile for other usernames
+          newProfile = {
+            username,
+            address: activeAddress,
+            joinedDate: new Date().toISOString().split('T')[0],
+            totalReviews: 0,
+            positiveReviews: 0,
+            negativeReviews: 0,
+            trustScore: 0,
+            isOptedIn: true,
+            bio: 'New developer on the TrustMeBro platform',
+            skills: [],
+            projects: [],
+            recentReviews: [],
+          }
+        }
+
+        setAppData((prev) => ({
+          ...prev,
+          currentDeveloper: username,
+          developerProfile: newProfile,
+          isOptedIn: true,
+        }))
+
+        setAppState('dashboard')
+      }
+    } catch (error) {
+      console.error('Opt-in failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Handle opt-in completion
-  const handleOptInComplete = () => {
-    setAppData((prev) => ({
-      ...prev,
-      isOptedIn: true,
-    }))
-    setAppState('dashboard')
+  // Handle review submission (user workflow)
+  const handleSubmitReview = async (isPositive: boolean, message: string) => {
+    if (!appData.currentDeveloper) return
+
+    setIsLoading(true)
+
+    try {
+      const reviewerAddress = activeAddress || 'anonymous_user'
+      const success = await submitReview(appData.currentDeveloper, reviewerAddress, isPositive, message)
+
+      if (success && appData.developerProfile) {
+        // Update the profile with the new review
+        const updatedProfile = {
+          ...appData.developerProfile,
+          totalReviews: appData.developerProfile.totalReviews + 1,
+          positiveReviews: appData.developerProfile.positiveReviews + (isPositive ? 1 : 0),
+          negativeReviews: appData.developerProfile.negativeReviews + (isPositive ? 0 : 1),
+        }
+
+        // Recalculate trust score
+        updatedProfile.trustScore = Math.round((updatedProfile.positiveReviews / updatedProfile.totalReviews) * 100)
+
+        setAppData((prev) => ({
+          ...prev,
+          developerProfile: updatedProfile,
+        }))
+      }
+    } catch (error) {
+      console.error('Review submission failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Navigate back to home
@@ -170,7 +214,7 @@ const TrustMeApp: React.FC = () => {
     setAppData({ isOptedIn: false })
   }
 
-  // Navigate to dashboard (for already opted-in users)
+  // Navigate to dashboard (for already opted-in developers)
   const handleGoToDashboard = () => {
     setAppState('dashboard')
   }
@@ -180,7 +224,7 @@ const TrustMeApp: React.FC = () => {
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-8 h-8 text-white/50 animate-spin mx-auto mb-2" />
-        <p className="text-white/70 text-sm">Checking wallet status...</p>
+        <p className="text-white/70 text-sm">Processing...</p>
       </div>
     </div>
   )
@@ -198,15 +242,15 @@ const TrustMeApp: React.FC = () => {
           </motion.div>
         )}
 
-        {appState === 'results' && appData.currentDeveloper && appData.developerData && (
+        {appState === 'profile' && appData.currentDeveloper && appData.developerProfile && (
           <motion.div
-            key="results"
+            key="profile"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ResultsDisplay developerName={appData.currentDeveloper} data={appData.developerData} onBack={handleBackToHome} />
+            <DeveloperProfile profile={appData.developerProfile} onBack={handleBackToHome} onSubmitReview={handleSubmitReview} />
           </motion.div>
         )}
 
@@ -221,14 +265,14 @@ const TrustMeApp: React.FC = () => {
             <DeveloperOnboarding
               walletAddress={activeAddress || ''}
               isOptedIn={appData.isOptedIn}
-              onOptIn={handleOptInRequest}
+              onOptIn={handleDeveloperOptIn}
               onGoToDashboard={handleGoToDashboard}
               onBack={handleBackToHome}
             />
           </motion.div>
         )}
 
-        {appState === 'dashboard' && appData.currentDeveloper && appData.developerData && (
+        {appState === 'dashboard' && appData.currentDeveloper && appData.developerProfile && (
           <motion.div
             key="dashboard"
             initial={{ opacity: 0, y: 20 }}
@@ -236,20 +280,13 @@ const TrustMeApp: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <Dashboard developerName={appData.currentDeveloper} data={appData.developerData} onBack={handleBackToHome} />
+            <Dashboard developerName={appData.currentDeveloper} data={appData.developerProfile} onBack={handleBackToHome} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Modals */}
       <WalletConnectModal isOpen={showWalletModal} onClose={() => setShowWalletModal(false)} onWalletSelect={handleWalletSelect} />
-
-      <OptInModal
-        isOpen={showOptInModal}
-        onClose={() => setShowOptInModal(false)}
-        onOptIn={handleOptInComplete}
-        developerName={appData.currentDeveloper}
-      />
     </div>
   )
 }
